@@ -1,172 +1,421 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSI Live Overlay</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSI Live – Top 10 per divisjon</title>
+<style>
+  :root {
+    --bg:       #0d0d0d;
+    --surface:  #141414;
+    --border:   #ffffff0f;
+    --accent:   #00d2ff;
+    --green:    #7CFC00;
+    --text:     #e0e0e0;
+    --muted:    #555;
+  }
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            background: #0d0d0d;
-            color: #e0e0e0;
-            font-family: 'Courier New', monospace;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+  }
 
-        .card {
-            background: #111;
-            border: 1px solid #00d2ff33;
-            border-radius: 16px;
-            padding: 48px;
-            max-width: 480px;
-            width: 90%;
-            box-shadow: 0 0 40px #00d2ff11, 0 16px 48px rgba(0,0,0,0.6);
-        }
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px 24px;
+    border-bottom: 1px solid #00d2ff22;
+    background: #00d2ff08;
+  }
 
-        h1 {
-            color: #00d2ff;
-            font-size: 22px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 32px;
-        }
+  .header-left h1 {
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
 
-        h1 span {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: #00d2ff;
-            border-radius: 50%;
-            margin-right: 10px;
-            vertical-align: middle;
-            animation: pulse 1.5s infinite;
-        }
+  .header-left h1 span {
+    display: inline-block;
+    width: 9px; height: 9px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+    animation: pulse 1.5s infinite;
+  }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
 
-        ol {
-            list-style: none;
-            counter-reset: steps;
-            margin-bottom: 32px;
-        }
+  #status-text {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  #status-text.ok  { color: var(--accent); }
+  #status-text.err { color: #ff5555; }
 
-        ol li {
-            counter-increment: steps;
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            margin-bottom: 18px;
-            color: #aaa;
-            font-size: 14px;
-            line-height: 1.5;
-        }
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-        ol li::before {
-            content: counter(steps);
-            min-width: 26px;
-            height: 26px;
-            background: #00d2ff14;
-            border: 1px solid #00d2ff44;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #00d2ff;
-            font-size: 12px;
-            font-weight: bold;
-        }
+  .controls input {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 12px;
+    width: 140px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .controls input:focus { border-color: var(--accent); }
+  .controls input::placeholder { color: var(--muted); }
 
-        button {
-            width: 100%;
-            background: #00d2ff;
-            color: #000;
-            border: none;
-            padding: 16px 24px;
-            border-radius: 10px;
-            font-size: 15px;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            letter-spacing: 1px;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.2s;
-        }
+  .controls button {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: .5px;
+    padding: 8px 16px;
+    transition: opacity .15s;
+  }
+  .controls button:hover { opacity: .85; }
+  .controls button:disabled { opacity: .4; cursor: not-allowed; }
 
-        button:hover {
-            background: #33ddff;
-            box-shadow: 0 0 20px #00d2ff55;
-        }
+  #refresh-btn {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: var(--muted);
+  }
+  #refresh-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 
-        button:active {
-            transform: scale(0.98);
-        }
+  /* ── GRID ── */
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 20px 24px;
+  }
 
-        #status {
-            margin-top: 14px;
-            font-size: 12px;
-            color: #555;
-            text-align: center;
-            min-height: 18px;
-        }
+  .div-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
 
-        #status.ok { color: #00d2ff; }
-        #status.err { color: #ff5555; }
-    </style>
+  .div-card-title {
+    background: #00d2ff0f;
+    border-bottom: 1px solid #00d2ff1a;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    padding: 8px 12px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .div-count {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: normal;
+    letter-spacing: 0;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+  }
+
+  td {
+    padding: 5px 10px;
+    border-bottom: 1px solid #ffffff06;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #00d2ff06; }
+
+  .td-rank  { width: 26px; font-size: 11px; color: var(--muted); font-weight: bold; }
+  .td-hf    { width: 72px; color: var(--green); font-weight: bold; }
+  .td-name  { color: #ddd; }
+  .td-pct   { width: 52px; color: var(--muted); font-size: 11px; text-align: right; }
+
+  .rank-1 { color: #ffd700 !important; }
+  .rank-2 { color: #c0c0c0 !important; }
+  .rank-3 { color: #cd7f32 !important; }
+
+  .empty-msg {
+    color: var(--muted);
+    font-size: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  /* ── LOADER / ERROR ── */
+  #message {
+    display: none;
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 2;
+  }
+  #message.err { color: #ff7777; }
+
+  .spinner {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid #333;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
 
-<div class="card">
-    <h1><span></span>SSI Live Overlay</h1>
+<header>
+  <div class="header-left">
+    <h1><span></span>SSI Live – Top 10</h1>
+    <div id="status-text">Skriv inn match-ID og trykk Last</div>
+  </div>
+  <div class="controls">
+    <input id="match-input" type="number" placeholder="Match-ID" min="1" />
+    <button id="load-btn">Last inn</button>
+    <button id="refresh-btn" disabled>↻ Auto-refresh: AV</button>
+  </div>
+</header>
 
-    <ol>
-        <li>Åpne SSI Live Scores i en annen fane i samme nettleser.</li>
-        <li>Gå tilbake til denne siden.</li>
-        <li>Trykk knappen under – overlayет dukker opp øverst til høyre.</li>
-    </ol>
-
-    <button id="loadOverlay">▶ Last inn overlay</button>
-    <div id="status"></div>
-</div>
+<div id="message"></div>
+<div id="grid"></div>
 
 <script>
-    document.getElementById("loadOverlay").onclick = async () => {
-        let status = document.getElementById("status");
-        status.className = "";
-        status.textContent = "Laster...";
+// ── KONFIGURASJON ─────────────────────────────────────────────
+// Bytt ut denne URL-en med din Cloudflare Worker-adresse etter deploy
+const WORKER_URL = "https://ssi-proxy.nop-dynamisk.workers.dev";
 
-        try {
-            const code = await fetch("./overlay.js").then(r => {
-                if (!r.ok) throw new Error("Kunne ikke laste overlay.js");
-                return r.text();
-            });
+const DIVISIONS = [
+  "Open", "Standard", "Classic",
+  "Production", "Production Optics", "Optics"
+];
 
-            // Fjern eksisterende overlay hvis det finnes
-            let existing = document.getElementById("ssi-live-overlay");
-            if (existing) existing.remove();
-            if (window.ssiLiveInterval) clearInterval(window.ssiLiveInterval);
+const TOP_N       = 10;
+const REFRESH_SEC = 30;
+// ─────────────────────────────────────────────────────────────
 
-            eval(code);
+let currentMatchId  = null;
+let refreshInterval = null;
+let autoRefresh     = false;
+let refreshCounter  = REFRESH_SEC;
+let countdownTimer  = null;
 
-            status.className = "ok";
-            status.textContent = "✓ Overlay aktivt – oppdateres hvert 2. sekund";
-        } catch (err) {
-            status.className = "err";
-            status.textContent = "✗ Feil: " + err.message;
-        }
-    };
+const grid        = document.getElementById("grid");
+const message     = document.getElementById("message");
+const statusText  = document.getElementById("status-text");
+const loadBtn     = document.getElementById("load-btn");
+const refreshBtn  = document.getElementById("refresh-btn");
+const matchInput  = document.getElementById("match-input");
+
+// Enter-tast i input-feltet
+matchInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") loadMatch();
+});
+
+loadBtn.addEventListener("click", loadMatch);
+
+refreshBtn.addEventListener("click", () => {
+  autoRefresh = !autoRefresh;
+  if (autoRefresh) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
+});
+
+function loadMatch() {
+  const id = matchInput.value.trim();
+  if (!id || isNaN(id)) {
+    showMessage("Skriv inn en gyldig match-ID.", "err");
+    return;
+  }
+  currentMatchId = id;
+  fetchAndRender();
+  refreshBtn.disabled = false;
+  if (autoRefresh) startAutoRefresh();
+}
+
+async function fetchAndRender() {
+  if (!currentMatchId) return;
+
+  showMessage('<span class="spinner"></span> Henter data fra SSI...', "");
+  loadBtn.disabled = true;
+
+  try {
+    const resp = await fetch(`${WORKER_URL}/match/${currentMatchId}/results/`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    renderDivisions(data);
+    const now = new Date().toLocaleTimeString("nb-NO");
+    setStatus(`Sist oppdatert: ${now}  ·  Match ${currentMatchId}`, "ok");
+    hideMessage();
+
+  } catch (e) {
+    showMessage(`Feil: ${e.message}<br><br>Sjekk at Worker-URL er korrekt og at SSI-legitimasjon er satt.`, "err");
+    setStatus("Feil ved henting av data", "err");
+  } finally {
+    loadBtn.disabled = false;
+  }
+}
+
+function renderDivisions(data) {
+  // SSI API returnerer en liste med competitors:
+  // [ { name, division, hit_factor, time, match_points, match_percentage, ... }, ... ]
+  // Grupper per divisjon, sorter, vis topp 10
+
+  const perDiv = {};
+  DIVISIONS.forEach(d => perDiv[d] = []);
+
+  // Normaliser divisjonsnavn fra SSI (kan variere litt)
+  const normalize = s => (s || "").toLowerCase().replace(/[\s_-]/g, "");
+
+  data.forEach(shooter => {
+    const rawDiv = shooter.division || shooter.Division || "";
+    const match  = DIVISIONS.find(d =>
+      normalize(rawDiv).includes(normalize(d)) ||
+      normalize(d).includes(normalize(rawDiv))
+    );
+    if (!match) return;
+
+    perDiv[match].push({
+      navn: shooter.name        || shooter.competitor_name || "–",
+      hf:   parseFloat(shooter.hit_factor   || shooter.hitfactor || 0),
+      pct:  parseFloat(shooter.match_percentage || shooter.percentage || 0),
+    });
+  });
+
+  grid.innerHTML = "";
+
+  DIVISIONS.forEach(div => {
+    const shooters = perDiv[div]
+      .filter(s => s.hf > 0)
+      .sort((a, b) => b.hf - a.hf)
+      .slice(0, TOP_N);
+
+    const card = document.createElement("div");
+    card.className = "div-card";
+
+    let rows = "";
+    if (shooters.length === 0) {
+      rows = `<div class="empty-msg">Ingen data</div>`;
+    } else {
+      rows = `<table>`;
+      shooters.forEach((s, i) => {
+        const rc = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
+        rows += `<tr>
+          <td class="td-rank ${rc}">${i + 1}</td>
+          <td class="td-hf">${s.hf.toFixed(4)}</td>
+          <td class="td-name">${escHtml(s.navn)}</td>
+          <td class="td-pct">${s.pct > 0 ? s.pct.toFixed(1) + "%" : ""}</td>
+        </tr>`;
+      });
+      rows += `</table>`;
+    }
+
+    card.innerHTML = `
+      <div class="div-card-title">
+        ${div}
+        <span class="div-count">${shooters.length} skytt${shooters.length !== 1 ? "ere" : ""}</span>
+      </div>
+      ${rows}
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefresh = true;
+  refreshCounter = REFRESH_SEC;
+  updateRefreshBtn();
+
+  countdownTimer = setInterval(() => {
+    refreshCounter--;
+    updateRefreshBtn();
+    if (refreshCounter <= 0) {
+      refreshCounter = REFRESH_SEC;
+      fetchAndRender();
+    }
+  }, 1000);
+
+  refreshBtn.style.borderColor = "var(--accent)";
+  refreshBtn.style.color       = "var(--accent)";
+}
+
+function stopAutoRefresh() {
+  autoRefresh = false;
+  clearInterval(countdownTimer);
+  refreshBtn.textContent    = "↻ Auto-refresh: AV";
+  refreshBtn.style.borderColor = "";
+  refreshBtn.style.color       = "";
+}
+
+function updateRefreshBtn() {
+  refreshBtn.textContent = `↻ Oppdaterer om ${refreshCounter}s`;
+}
+
+function showMessage(html, type) {
+  message.style.display = "block";
+  message.innerHTML     = html;
+  message.className     = type;
+  grid.innerHTML        = "";
+}
+
+function hideMessage() {
+  message.style.display = "none";
+}
+
+function setStatus(text, type) {
+  statusText.textContent = text;
+  statusText.className   = type;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
 </script>
-
 </body>
 </html>
