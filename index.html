@@ -1,0 +1,183 @@
+```javascript
+(function () {
+
+    if (window.ssiLiveOverlay) {
+        window.ssiLiveOverlay.remove();
+    }
+
+    if (window.ssiLiveInterval) {
+        clearInterval(window.ssiLiveInterval);
+    }
+
+    const style = document.createElement("style");
+
+    style.innerHTML = `
+    #ssi-live-overlay{
+        position:fixed;
+        top:20px;
+        right:20px;
+        width:700px;
+        max-height:90vh;
+        overflow:auto;
+        background:#111;
+        color:white;
+        z-index:999999;
+        border-radius:12px;
+        box-shadow:0 0 30px rgba(0,0,0,0.5);
+        font-family:Arial;
+        border:2px solid #333;
+    }
+
+    #ssi-live-header{
+        padding:15px;
+        background:#1d1d1d;
+        font-size:22px;
+        font-weight:bold;
+        border-bottom:1px solid #333;
+    }
+
+    #ssi-live-sub{
+        font-size:12px;
+        color:#aaa;
+        margin-top:5px;
+    }
+
+    table{
+        width:100%;
+        border-collapse:collapse;
+    }
+
+    th{
+        background:#222;
+        padding:10px;
+        position:sticky;
+        top:0;
+    }
+
+    td{
+        padding:8px;
+        border-bottom:1px solid #333;
+    }
+
+    tr:hover{
+        background:#1b1b1b;
+    }
+
+    .hf{
+        color:#7CFC00;
+        font-weight:bold;
+    }
+
+    .rank{
+        color:#00d2ff;
+        font-weight:bold;
+    }
+
+    #ssi-close{
+        position:absolute;
+        top:10px;
+        right:10px;
+        cursor:pointer;
+        background:red;
+        color:white;
+        border:none;
+        padding:5px 10px;
+        border-radius:5px;
+    }
+    `;
+
+    document.head.appendChild(style);
+
+    const overlay = document.createElement("div");
+
+    overlay.id = "ssi-live-overlay";
+
+    overlay.innerHTML = `
+        <button id="ssi-close">X</button>
+
+        <div id="ssi-live-header">
+            SSI LIVE RESULTS
+            <div id="ssi-live-sub"></div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>HF</th>
+                    <th>Time</th>
+                    <th>Name</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+
+            <tbody id="ssi-live-body"></tbody>
+        </table>
+    `;
+
+    document.body.appendChild(overlay);
+
+    window.ssiLiveOverlay = overlay;
+
+    function hentData(){
+
+        let rows = Array.from(document.querySelectorAll("table tr"))
+        .map(r => r.innerText.trim())
+        .filter(t =>
+            t &&
+            t.includes("\t") &&
+            !t.includes("Tid\tHit Factor") &&
+            !t.includes("TidHitFactor") &&
+            !t.includes("No data")
+        )
+        .map(t => {
+
+            let p = t.split("\t");
+
+            return {
+                tid: parseFloat(p[0]),
+                hf: parseFloat(p[1]),
+                navn: p[2],
+                score: p[3]
+            };
+        })
+        .filter(x => !isNaN(x.hf))
+        .sort((a,b)=>b.hf-a.hf);
+
+        let tbody = document.getElementById("ssi-live-body");
+
+        tbody.innerHTML = "";
+
+        rows.forEach((r,i)=>{
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="rank">${i+1}</td>
+                    <td class="hf">${r.hf.toFixed(4)}</td>
+                    <td>${r.tid}</td>
+                    <td>${r.navn}</td>
+                    <td>${r.score}</td>
+                </tr>
+            `;
+
+        });
+
+        document.getElementById("ssi-live-sub").innerText =
+            "Updated: " + new Date().toLocaleTimeString();
+
+    }
+
+    hentData();
+
+    window.ssiLiveInterval = setInterval(hentData,2000);
+
+    document.getElementById("ssi-close").onclick = ()=>{
+
+        clearInterval(window.ssiLiveInterval);
+
+        overlay.remove();
+
+    };
+
+})();
+```
