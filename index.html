@@ -6,195 +6,89 @@
 <title>SSI Live – Top 10 per divisjon</title>
 <style>
   :root {
-    --bg:       #0d0d0d;
-    --surface:  #141414;
-    --border:   #ffffff0f;
-    --accent:   #00d2ff;
-    --green:    #7CFC00;
-    --text:     #e0e0e0;
-    --muted:    #555;
+    --bg:      #0d0d0d;
+    --surface: #141414;
+    --border:  #ffffff0f;
+    --accent:  #00d2ff;
+    --green:   #7CFC00;
+    --text:    #e0e0e0;
+    --muted:   #555;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; min-height: 100vh; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Courier New', monospace;
-    min-height: 100vh;
-  }
-
-  /* ── HEADER ── */
   header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 18px 24px;
-    border-bottom: 1px solid #00d2ff22;
-    background: #00d2ff08;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; padding: 14px 20px;
+    border-bottom: 1px solid #00d2ff22; background: #00d2ff08;
   }
-
-  .header-left h1 {
-    font-size: 18px;
-    letter-spacing: 2px;
-    color: var(--accent);
-    text-transform: uppercase;
-  }
-
+  .header-left h1 { font-size: 16px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
   .header-left h1 span {
-    display: inline-block;
-    width: 9px; height: 9px;
-    background: var(--accent);
-    border-radius: 50%;
-    margin-right: 8px;
-    vertical-align: middle;
-    animation: pulse 1.5s infinite;
+    display: inline-block; width: 9px; height: 9px;
+    background: var(--accent); border-radius: 50%; margin-right: 8px;
+    vertical-align: middle; animation: pulse 1.5s infinite;
   }
-
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
-
-  #status-text {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 3px;
-  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.2} }
+  #status-text { font-size: 11px; color: var(--muted); margin-top: 3px; }
   #status-text.ok  { color: var(--accent); }
   #status-text.err { color: #ff5555; }
 
-  /* ── CONTROLS ── */
-  .controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
+  .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .controls input {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    padding: 8px 12px;
-    width: 140px;
-    outline: none;
-    transition: border-color .2s;
+    background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+    color: var(--text); font-family: inherit; font-size: 13px;
+    padding: 7px 12px; width: 130px; outline: none; transition: border-color .2s;
   }
   .controls input:focus { border-color: var(--accent); }
   .controls input::placeholder { color: var(--muted); }
-
   .controls button {
-    background: var(--accent);
-    border: none;
-    border-radius: 8px;
-    color: #000;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: bold;
-    letter-spacing: .5px;
-    padding: 8px 16px;
-    transition: opacity .15s;
+    background: var(--accent); border: none; border-radius: 8px; color: #000;
+    cursor: pointer; font-family: inherit; font-size: 13px; font-weight: bold;
+    padding: 7px 14px; transition: opacity .15s;
   }
   .controls button:hover { opacity: .85; }
   .controls button:disabled { opacity: .4; cursor: not-allowed; }
-
-  #refresh-btn {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    color: var(--muted);
+  #ws-status {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    border: 1px solid var(--muted); color: var(--muted);
   }
-  #refresh-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  #ws-status.live    { border-color: var(--green); color: var(--green); }
+  #ws-status.partial { border-color: #ffaa00; color: #ffaa00; }
+  #ws-status.err     { border-color: #ff5555; color: #ff5555; }
 
-  /* ── GRID ── */
   #grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-    padding: 20px 24px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px; padding: 16px 20px;
   }
-
-  .div-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
+  .div-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .div-card-title {
-    background: #00d2ff0f;
-    border-bottom: 1px solid #00d2ff1a;
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 1.5px;
-    padding: 8px 12px;
-    text-transform: uppercase;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background: #00d2ff0f; border-bottom: 1px solid #00d2ff1a;
+    color: var(--accent); font-size: 11px; font-weight: bold;
+    letter-spacing: 1.5px; padding: 7px 12px; text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center;
   }
-
-  .div-count {
-    color: var(--muted);
-    font-size: 10px;
-    font-weight: normal;
-    letter-spacing: 0;
-  }
-
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 12px;
-  }
-
-  td {
-    padding: 5px 10px;
-    border-bottom: 1px solid #ffffff06;
-  }
-
+  .div-count { color: var(--muted); font-size: 10px; font-weight: normal; letter-spacing: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  td { padding: 5px 10px; border-bottom: 1px solid #ffffff06; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #00d2ff06; }
+  .td-rank { width: 24px; font-size: 11px; color: var(--muted); font-weight: bold; }
+  .td-hf   { width: 68px; color: var(--green); font-weight: bold; }
+  .td-name { color: #ddd; }
+  .td-stg  { width: 40px; color: var(--muted); font-size: 10px; text-align: right; }
+  .rank-1  { color: #ffd700 !important; }
+  .rank-2  { color: #c0c0c0 !important; }
+  .rank-3  { color: #cd7f32 !important; }
+  .empty-msg { color: var(--muted); font-size: 12px; padding: 14px 12px; text-align: center; }
 
-  .td-rank  { width: 26px; font-size: 11px; color: var(--muted); font-weight: bold; }
-  .td-hf    { width: 72px; color: var(--green); font-weight: bold; }
-  .td-name  { color: #ddd; }
-  .td-pct   { width: 52px; color: var(--muted); font-size: 11px; text-align: right; }
-
-  .rank-1 { color: #ffd700 !important; }
-  .rank-2 { color: #c0c0c0 !important; }
-  .rank-3 { color: #cd7f32 !important; }
-
-  .empty-msg {
-    color: var(--muted);
-    font-size: 12px;
-    padding: 14px 12px;
-    text-align: center;
-  }
-
-  /* ── LOADER / ERROR ── */
-  #message {
-    display: none;
-    padding: 60px 24px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 2;
-  }
+  #message { display:none; padding: 50px 20px; text-align:center; color: var(--muted); font-size:14px; line-height:2; }
   #message.err { color: #ff7777; }
-
   .spinner {
-    display: inline-block;
-    width: 20px; height: 20px;
-    border: 2px solid #333;
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-    vertical-align: middle;
-    margin-right: 8px;
+    display: inline-block; width: 18px; height: 18px;
+    border: 2px solid #333; border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .7s linear infinite;
+    vertical-align: middle; margin-right: 8px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -203,13 +97,13 @@
 
 <header>
   <div class="header-left">
-    <h1><span></span>SSI Live – Top 10</h1>
-    <div id="status-text">Skriv inn match-ID og trykk Last</div>
+    <h1><span></span>SSI Live – Top 10 per divisjon</h1>
+    <div id="status-text">Skriv inn match-ID og klikk Koble til</div>
   </div>
   <div class="controls">
-    <input id="match-input" type="number" placeholder="Match-ID" min="1" />
-    <button id="load-btn">Last inn</button>
-    <button id="refresh-btn" disabled>↻ Auto-refresh: AV</button>
+    <input id="match-input" type="number" placeholder="Match-ID" value="24850" min="1"/>
+    <button id="connect-btn">Koble til</button>
+    <div id="ws-status">FRAKOBLET</div>
   </div>
 </header>
 
@@ -217,136 +111,180 @@
 <div id="grid"></div>
 
 <script>
-// ── KONFIGURASJON ─────────────────────────────────────────────
-// Bytt ut denne URL-en med din Cloudflare Worker-adresse etter deploy
-const WORKER_URL = "https://ssi-proxy.nop-dynamisk.workers.dev";
+const DIVISIONS = ["Open","Standard","Classic","Production","Production Optics","Optics"];
+const TOP_N = 10;
 
-const DIVISIONS = [
-  "Open", "Standard", "Classic",
-  "Production", "Production Optics", "Optics"
-];
-
-const TOP_N       = 10;
-const REFRESH_SEC = 30;
-// ─────────────────────────────────────────────────────────────
-
-let currentMatchId  = null;
-let refreshInterval = null;
-let autoRefresh     = false;
-let refreshCounter  = REFRESH_SEC;
-let countdownTimer  = null;
+// Lagrer beste HF per skytt per stage: { shooterId: { navn, divisjon, stages: { stageId: hf } } }
+let shooters = {};
+let stages   = [];
+let sockets  = [];
+let matchId  = null;
+let liveCount = 0;
 
 const grid        = document.getElementById("grid");
 const message     = document.getElementById("message");
 const statusText  = document.getElementById("status-text");
-const loadBtn     = document.getElementById("load-btn");
-const refreshBtn  = document.getElementById("refresh-btn");
+const connectBtn  = document.getElementById("connect-btn");
+const wsStatus    = document.getElementById("ws-status");
 const matchInput  = document.getElementById("match-input");
 
-// Enter-tast i input-feltet
-matchInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") loadMatch();
-});
+matchInput.addEventListener("keydown", e => { if (e.key === "Enter") connect(); });
+document.getElementById("connect-btn").addEventListener("click", connect);
 
-loadBtn.addEventListener("click", loadMatch);
-
-refreshBtn.addEventListener("click", () => {
-  autoRefresh = !autoRefresh;
-  if (autoRefresh) {
-    startAutoRefresh();
-  } else {
-    stopAutoRefresh();
-  }
-});
-
-function loadMatch() {
+async function connect() {
   const id = matchInput.value.trim();
-  if (!id || isNaN(id)) {
-    showMessage("Skriv inn en gyldig match-ID.", "err");
-    return;
-  }
-  currentMatchId = id;
-  fetchAndRender();
-  refreshBtn.disabled = false;
-  if (autoRefresh) startAutoRefresh();
-}
-
-async function fetchAndRender() {
-  if (!currentMatchId) return;
-
-  showMessage('<span class="spinner"></span> Henter data fra SSI...', "");
-  loadBtn.disabled = true;
+  if (!id) return;
+  matchId = id;
+  shooters = {};
+  stages   = [];
+  liveCount = 0;
+  disconnectAll();
+  showMessage('<span class="spinner"></span> Henter stage-informasjon...', "");
+  connectBtn.disabled = true;
+  wsStatus.className = "";
+  wsStatus.textContent = "KOBLER...";
 
   try {
-    const resp = await fetch(`${WORKER_URL}/match/${currentMatchId}/results/`);
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${resp.status}`);
-    }
+    // Hent stage-IDer fra SSI via CORS-proxy (siden SSI ikke har CORS)
+    // Vi bruker en åpen CORS-proxy kun for å lese offentlig HTML
+    const html = await fetch(
+      `https://corsproxy.io/?url=https://shootnscoreit.com/event/22/${matchId}/stages/`
+    ).then(r => r.text());
 
-    const data = await resp.json();
-    renderDivisions(data);
-    const now = new Date().toLocaleTimeString("nb-NO");
-    setStatus(`Sist oppdatert: ${now}  ·  Match ${currentMatchId}`, "ok");
+    // Parse stage-IDer fra linker som /event/stage/24/XXXXX/
+    const matches = [...html.matchAll(/\/event\/stage\/\d+\/(\d+)\//g)];
+    const stageIds = [...new Set(matches.map(m => m[1]))];
+
+    if (stageIds.length === 0) throw new Error("Fant ingen stages for denne kampen.");
+
+    stages = stageIds;
+    setStatus(`Kobler til ${stageIds.length} stages for match ${matchId}...`, "");
     hideMessage();
+    renderGrid();
+    connectWebSockets(stageIds);
 
-  } catch (e) {
-    showMessage(`Feil: ${e.message}<br><br>Sjekk at Worker-URL er korrekt og at SSI-legitimasjon er satt.`, "err");
-    setStatus("Feil ved henting av data", "err");
-  } finally {
-    loadBtn.disabled = false;
+  } catch(e) {
+    showMessage(`Feil: ${e.message}`, "err");
+    setStatus("Feil", "err");
+    connectBtn.disabled = false;
   }
 }
 
-function renderDivisions(data) {
-  // SSI API returnerer en liste med competitors:
-  // [ { name, division, hit_factor, time, match_points, match_percentage, ... }, ... ]
-  // Grupper per divisjon, sorter, vis topp 10
+function connectWebSockets(stageIds) {
+  disconnectAll();
+  liveCount = 0;
 
+  stageIds.forEach(stageId => {
+    const ws = new WebSocket(
+      `wss://shootnscoreit.com/ws/event/ipsc/${matchId}/?stage=${stageId}`
+    );
+
+    ws.onopen = () => {
+      liveCount++;
+      updateWsStatus();
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleMessage(data, stageId);
+      } catch(e) {}
+    };
+
+    ws.onclose = () => {
+      liveCount = Math.max(0, liveCount - 1);
+      updateWsStatus();
+    };
+
+    ws.onerror = () => {
+      liveCount = Math.max(0, liveCount - 1);
+      updateWsStatus();
+    };
+
+    sockets.push(ws);
+  });
+
+  connectBtn.disabled = false;
+}
+
+function handleMessage(data, stageId) {
+  // SSI WebSocket sender meldinger med scores
+  // Format varierer – vi håndterer både liste og enkelt-score
+  const scores = Array.isArray(data) ? data : (data.scores || data.results || [data]);
+
+  scores.forEach(score => {
+    if (!score) return;
+
+    const id  = score.competitor_id || score.id || score.shooter_id;
+    const hf  = parseFloat(score.hit_factor || score.hitfactor || score.hf || 0);
+    const div = score.division || score.div || "";
+    const navn = score.name || score.competitor_name || score.navn || "";
+
+    if (!id || isNaN(hf) || hf <= 0) return;
+
+    if (!shooters[id]) {
+      shooters[id] = { navn, divisjon: div, stages: {} };
+    }
+    // Oppdater beste HF for denne skytten på denne stagen
+    if (!shooters[id].stages[stageId] || hf > shooters[id].stages[stageId]) {
+      shooters[id].stages[stageId] = hf;
+    }
+    if (navn) shooters[id].navn = navn;
+    if (div)  shooters[id].divisjon = div;
+  });
+
+  renderGrid();
+  const now = new Date().toLocaleTimeString("nb-NO");
+  setStatus(`Live · ${Object.keys(shooters).length} skytt · Oppdatert ${now}`, "ok");
+}
+
+function renderGrid() {
   const perDiv = {};
   DIVISIONS.forEach(d => perDiv[d] = []);
 
-  // Normaliser divisjonsnavn fra SSI (kan variere litt)
-  const normalize = s => (s || "").toLowerCase().replace(/[\s_-]/g, "");
+  const normalize = s => (s||"").toLowerCase().replace(/[\s_\-]/g,"");
 
-  data.forEach(shooter => {
-    const rawDiv = shooter.division || shooter.Division || "";
-    const match  = DIVISIONS.find(d =>
-      normalize(rawDiv).includes(normalize(d)) ||
-      normalize(d).includes(normalize(rawDiv))
+  Object.values(shooters).forEach(s => {
+    const divMatch = DIVISIONS.find(d =>
+      normalize(s.divisjon).includes(normalize(d)) ||
+      normalize(d).includes(normalize(s.divisjon))
     );
-    if (!match) return;
+    if (!divMatch) return;
 
-    perDiv[match].push({
-      navn: shooter.name        || shooter.competitor_name || "–",
-      hf:   parseFloat(shooter.hit_factor   || shooter.hitfactor || 0),
-      pct:  parseFloat(shooter.match_percentage || shooter.percentage || 0),
+    // Sum av beste HF per stage = total "score" for rangering
+    const totalHF = Object.values(s.stages).reduce((a,b) => a+b, 0);
+    const stageCount = Object.keys(s.stages).length;
+
+    perDiv[divMatch].push({
+      navn: s.navn,
+      hf:   totalHF,
+      stg:  stageCount
     });
   });
 
   grid.innerHTML = "";
 
   DIVISIONS.forEach(div => {
-    const shooters = perDiv[div]
+    const list = perDiv[div]
       .filter(s => s.hf > 0)
-      .sort((a, b) => b.hf - a.hf)
+      .sort((a,b) => b.hf - a.hf)
       .slice(0, TOP_N);
 
     const card = document.createElement("div");
     card.className = "div-card";
 
     let rows = "";
-    if (shooters.length === 0) {
-      rows = `<div class="empty-msg">Ingen data</div>`;
+    if (list.length === 0) {
+      rows = `<div class="empty-msg">Ingen data ennå</div>`;
     } else {
       rows = `<table>`;
-      shooters.forEach((s, i) => {
-        const rc = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
+      list.forEach((s, i) => {
+        const rc = i===0?"rank-1":i===1?"rank-2":i===2?"rank-3":"";
         rows += `<tr>
-          <td class="td-rank ${rc}">${i + 1}</td>
+          <td class="td-rank ${rc}">${i+1}</td>
           <td class="td-hf">${s.hf.toFixed(4)}</td>
-          <td class="td-name">${escHtml(s.navn)}</td>
-          <td class="td-pct">${s.pct > 0 ? s.pct.toFixed(1) + "%" : ""}</td>
+          <td class="td-name">${esc(s.navn)}</td>
+          <td class="td-stg">${s.stg}stg</td>
         </tr>`;
       });
       rows += `</table>`;
@@ -355,66 +293,41 @@ function renderDivisions(data) {
     card.innerHTML = `
       <div class="div-card-title">
         ${div}
-        <span class="div-count">${shooters.length} skytt${shooters.length !== 1 ? "ere" : ""}</span>
-      </div>
-      ${rows}
-    `;
+        <span class="div-count">${list.length} skytt${list.length!==1?"ere":""}</span>
+      </div>${rows}`;
     grid.appendChild(card);
   });
 }
 
-function startAutoRefresh() {
-  stopAutoRefresh();
-  autoRefresh = true;
-  refreshCounter = REFRESH_SEC;
-  updateRefreshBtn();
-
-  countdownTimer = setInterval(() => {
-    refreshCounter--;
-    updateRefreshBtn();
-    if (refreshCounter <= 0) {
-      refreshCounter = REFRESH_SEC;
-      fetchAndRender();
-    }
-  }, 1000);
-
-  refreshBtn.style.borderColor = "var(--accent)";
-  refreshBtn.style.color       = "var(--accent)";
+function disconnectAll() {
+  sockets.forEach(ws => { try { ws.close(); } catch(e){} });
+  sockets = [];
 }
 
-function stopAutoRefresh() {
-  autoRefresh = false;
-  clearInterval(countdownTimer);
-  refreshBtn.textContent    = "↻ Auto-refresh: AV";
-  refreshBtn.style.borderColor = "";
-  refreshBtn.style.color       = "";
-}
-
-function updateRefreshBtn() {
-  refreshBtn.textContent = `↻ Oppdaterer om ${refreshCounter}s`;
+function updateWsStatus() {
+  const total = stages.length;
+  if (liveCount === 0) {
+    wsStatus.className = "err";
+    wsStatus.textContent = "FRAKOBLET";
+  } else if (liveCount < total) {
+    wsStatus.className = "partial";
+    wsStatus.textContent = `DELVIS ${liveCount}/${total}`;
+  } else {
+    wsStatus.className = "live";
+    wsStatus.textContent = `LIVE ${liveCount}/${total}`;
+  }
 }
 
 function showMessage(html, type) {
   message.style.display = "block";
-  message.innerHTML     = html;
-  message.className     = type;
-  grid.innerHTML        = "";
+  message.innerHTML = html;
+  message.className = type;
+  grid.innerHTML = "";
 }
-
-function hideMessage() {
-  message.style.display = "none";
-}
-
-function setStatus(text, type) {
-  statusText.textContent = text;
-  statusText.className   = type;
-}
-
-function escHtml(s) {
-  return String(s)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
+function hideMessage() { message.style.display = "none"; }
+function setStatus(t, type) { statusText.textContent = t; statusText.className = type; }
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 </script>
 </body>
