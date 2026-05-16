@@ -111,83 +111,97 @@
 <div id="grid"></div>
 
 <script>
+// ── KONFIGURASJON ─────────────────────────────────────────────
+const WORKER = "https://ssi-proxy.nop-dynamisk.workers.dev";
+// ─────────────────────────────────────────────────────────────
+
 const DIVISIONS = ["Open","Standard","Classic","Production","Production Optics","Optics"];
 const TOP_N = 10;
 
-// Lagrer beste HF per skytt per stage: { shooterId: { navn, divisjon, stages: { stageId: hf } } }
-let shooters = {};
-let stages   = [];
-let sockets  = [];
-let matchId  = null;
+let shooters  = {};   // { id: { navn, divisjon, stages: { stageId: hf } } }
+let stages    = [];
+let sockets   = [];
 let liveCount = 0;
+let matchId   = null;
 
-const grid        = document.getElementById("grid");
-const message     = document.getElementById("message");
-const statusText  = document.getElementById("status-text");
-const connectBtn  = document.getElementById("connect-btn");
-const wsStatus    = document.getElementById("ws-status");
-const matchInput  = document.getElementById("match-input");
+const grid       = document.getElementById("grid");
+const message    = document.getElementById("message");
+const statusText = document.getElementById("status-text");
+const connectBtn = document.getElementById("connect-btn");
+const wsStatus   = document.getElementById("ws-status");
+const matchInput = document.getElementById("match-input");
 
 matchInput.addEventListener("keydown", e => { if (e.key === "Enter") connect(); });
-document.getElementById("connect-btn").addEventListener("click", connect);
+connectBtn.addEventListener("click", connect);
 
 async function connect() {
   const id = matchInput.value.trim();
   if (!id) return;
-  matchId = id;
-  shooters = {};
-  stages   = [];
+
+  matchId   = id;
+  shooters  = {};
+  stages    = [];
   liveCount = 0;
   disconnectAll();
+  renderGrid();
   showMessage('<span class="spinner"></span> Henter stage-informasjon...', "");
   connectBtn.disabled = true;
-  wsStatus.className = "";
+  wsStatus.className  = "";
   wsStatus.textContent = "KOBLER...";
 
   try {
-    // Hent stage-IDer fra SSI via CORS-proxy (siden SSI ikke har CORS)
-    // Vi bruker en åpen CORS-proxy kun for å lese offentlig HTML
-    const html = await fetch(
-      `https://corsproxy.io/?url=https://shootnscoreit.com/event/22/${matchId}/stages/`
-    ).then(r => r.text());
+    const resp = await fetch(`${WORKER}/stages/${matchId}/`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({}));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    stages = data.stages.map(s => s.id);
 
-    // Parse stage-IDer fra linker som /event/stage/24/XXXXX/
-    const matches = [...html.matchAll(/\/event\/stage\/\d+\/(\d+)\//g)];
-    const stageIds = [...new Set(matches.map(m => m[1]))];
+    if (stages.length === 0) throw new Error("Ingen stages funnet for denne kampen.");
 
-    if (stageIds.length === 0) throw new Error("Fant ingen stages for denne kampen.");
-
-    stages = stageIds;
-    setStatus(`Kobler til ${stageIds.length} stages for match ${matchId}...`, "");
+    setStatus(`Kobler til ${stages.length} stages...`, "");
     hideMessage();
     renderGrid();
-    connectWebSockets(stageIds);
+    openWebSockets();
 
   } catch(e) {
     showMessage(`Feil: ${e.message}`, "err");
-    setStatus("Feil", "err");
+    setStatus("Feil ved tilkobling", "err");
+    wsStatus.className   = "err";
+    wsStatus.textContent = "FEIL";
+  } finally {
     connectBtn.disabled = false;
   }
 }
 
-function connectWebSockets(stageIds) {
+function openWebSockets() {
   disconnectAll();
   liveCount = 0;
 
-  stageIds.forEach(stageId => {
-    const ws = new WebSocket(
-      `wss://shootnscoreit.com/ws/event/ipsc/${matchId}/?stage=${stageId}`
-    );
+  stages.forEach(stageId => {
+    // Koble via Worker-proxyen i stedet for direkte til SSI
+    const wsUrl = `${WORKER.replace("https://","wss://")}/ws/${matchId}/${stageId}/`;
+    let ws;
+
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch(e) {
+      return;
+    }
 
     ws.onopen = () => {
       liveCount++;
       updateWsStatus();
+      if (liveCount === stages.length) {
+        setStatus(`Live · kobler til alle ${stages.length} stages`, "ok");
+      }
     };
 
-    ws.onmessage = (event) => {
+    ws.onmessage = event => {
       try {
         const data = JSON.parse(event.data);
-        handleMessage(data, stageId);
+        handleScoreMessage(data, stageId);
       } catch(e) {}
     };
 
@@ -203,96 +217,87 @@ function connectWebSockets(stageIds) {
 
     sockets.push(ws);
   });
-
-  connectBtn.disabled = false;
 }
 
-function handleMessage(data, stageId) {
-  // SSI WebSocket sender meldinger med scores
-  // Format varierer – vi håndterer både liste og enkelt-score
-  const scores = Array.isArray(data) ? data : (data.scores || data.results || [data]);
+function handleScoreMessage(data, stageId) {
+  // SSI sender typisk: { type: "score", competitor_id, name, division, hit_factor, ... }
+  // eller en liste med scores
+  const items = Array.isArray(data) ? data
+    : data.scores   ? data.scores
+    : data.results  ? data.results
+    : data.type === "score" || data.competitor_id ? [data]
+    : [];
 
-  scores.forEach(score => {
-    if (!score) return;
+  let updated = false;
 
-    const id  = score.competitor_id || score.id || score.shooter_id;
-    const hf  = parseFloat(score.hit_factor || score.hitfactor || score.hf || 0);
-    const div = score.division || score.div || "";
-    const navn = score.name || score.competitor_name || score.navn || "";
+  items.forEach(score => {
+    const id   = String(score.competitor_id || score.id || score.shooter_id || "");
+    const hf   = parseFloat(score.hit_factor || score.hitfactor || score.hf || 0);
+    const div  = score.division || score.div || "";
+    const navn = score.name || score.competitor_name || "";
 
-    if (!id || isNaN(hf) || hf <= 0) return;
+    if (!id || isNaN(hf) || hf < 0) return;
 
-    if (!shooters[id]) {
-      shooters[id] = { navn, divisjon: div, stages: {} };
-    }
-    // Oppdater beste HF for denne skytten på denne stagen
-    if (!shooters[id].stages[stageId] || hf > shooters[id].stages[stageId]) {
-      shooters[id].stages[stageId] = hf;
-    }
-    if (navn) shooters[id].navn = navn;
+    if (!shooters[id]) shooters[id] = { navn:"", divisjon:"", stages:{} };
+    if (navn) shooters[id].navn     = navn;
     if (div)  shooters[id].divisjon = div;
+
+    // Behold beste HF per stage per skytt
+    const prev = shooters[id].stages[stageId];
+    if (prev === undefined || hf > prev) {
+      shooters[id].stages[stageId] = hf;
+      updated = true;
+    }
   });
 
-  renderGrid();
-  const now = new Date().toLocaleTimeString("nb-NO");
-  setStatus(`Live · ${Object.keys(shooters).length} skytt · Oppdatert ${now}`, "ok");
+  if (updated) {
+    renderGrid();
+    const now = new Date().toLocaleTimeString("nb-NO");
+    const total = Object.keys(shooters).length;
+    setStatus(`Live · ${total} skytt · ${now}`, "ok");
+  }
 }
 
 function renderGrid() {
   const perDiv = {};
   DIVISIONS.forEach(d => perDiv[d] = []);
 
-  const normalize = s => (s||"").toLowerCase().replace(/[\s_\-]/g,"");
+  const norm = s => (s||"").toLowerCase().replace(/[\s_\-]/g,"");
 
   Object.values(shooters).forEach(s => {
     const divMatch = DIVISIONS.find(d =>
-      normalize(s.divisjon).includes(normalize(d)) ||
-      normalize(d).includes(normalize(s.divisjon))
+      norm(s.divisjon).includes(norm(d)) ||
+      norm(d).includes(norm(s.divisjon))
     );
     if (!divMatch) return;
 
-    // Sum av beste HF per stage = total "score" for rangering
-    const totalHF = Object.values(s.stages).reduce((a,b) => a+b, 0);
-    const stageCount = Object.keys(s.stages).length;
+    const totalHF  = Object.values(s.stages).reduce((a,b)=>a+b, 0);
+    const stgCount = Object.keys(s.stages).length;
+    if (totalHF <= 0) return;
 
-    perDiv[divMatch].push({
-      navn: s.navn,
-      hf:   totalHF,
-      stg:  stageCount
-    });
+    perDiv[divMatch].push({ navn: s.navn, hf: totalHF, stg: stgCount });
   });
 
   grid.innerHTML = "";
-
   DIVISIONS.forEach(div => {
-    const list = perDiv[div]
-      .filter(s => s.hf > 0)
-      .sort((a,b) => b.hf - a.hf)
-      .slice(0, TOP_N);
-
+    const list = perDiv[div].sort((a,b)=>b.hf-a.hf).slice(0, TOP_N);
     const card = document.createElement("div");
     card.className = "div-card";
 
-    let rows = "";
-    if (list.length === 0) {
-      rows = `<div class="empty-msg">Ingen data ennå</div>`;
-    } else {
-      rows = `<table>`;
-      list.forEach((s, i) => {
-        const rc = i===0?"rank-1":i===1?"rank-2":i===2?"rank-3":"";
-        rows += `<tr>
-          <td class="td-rank ${rc}">${i+1}</td>
-          <td class="td-hf">${s.hf.toFixed(4)}</td>
-          <td class="td-name">${esc(s.navn)}</td>
-          <td class="td-stg">${s.stg}stg</td>
-        </tr>`;
-      });
-      rows += `</table>`;
-    }
+    let rows = list.length === 0
+      ? `<div class="empty-msg">Ingen data ennå</div>`
+      : `<table>${list.map((s,i) => {
+          const rc = i===0?"rank-1":i===1?"rank-2":i===2?"rank-3":"";
+          return `<tr>
+            <td class="td-rank ${rc}">${i+1}</td>
+            <td class="td-hf">${s.hf.toFixed(4)}</td>
+            <td class="td-name">${esc(s.navn)}</td>
+            <td class="td-stg">${s.stg}stg</td>
+          </tr>`;
+        }).join("")}</table>`;
 
     card.innerHTML = `
-      <div class="div-card-title">
-        ${div}
+      <div class="div-card-title">${div}
         <span class="div-count">${list.length} skytt${list.length!==1?"ere":""}</span>
       </div>${rows}`;
     grid.appendChild(card);
@@ -305,15 +310,15 @@ function disconnectAll() {
 }
 
 function updateWsStatus() {
-  const total = stages.length;
+  const total = stages.length || 1;
   if (liveCount === 0) {
-    wsStatus.className = "err";
+    wsStatus.className   = "err";
     wsStatus.textContent = "FRAKOBLET";
   } else if (liveCount < total) {
-    wsStatus.className = "partial";
+    wsStatus.className   = "partial";
     wsStatus.textContent = `DELVIS ${liveCount}/${total}`;
   } else {
-    wsStatus.className = "live";
+    wsStatus.className   = "live";
     wsStatus.textContent = `LIVE ${liveCount}/${total}`;
   }
 }
@@ -322,7 +327,6 @@ function showMessage(html, type) {
   message.style.display = "block";
   message.innerHTML = html;
   message.className = type;
-  grid.innerHTML = "";
 }
 function hideMessage() { message.style.display = "none"; }
 function setStatus(t, type) { statusText.textContent = t; statusText.className = type; }
