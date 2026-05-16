@@ -1,183 +1,69 @@
-```javascript
-(function () {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSI Live Overlay</title>
 
-    if (window.ssiLiveOverlay) {
-        window.ssiLiveOverlay.remove();
-    }
+    <style>
+        body{
+            background:#111;
+            color:white;
+            font-family:Arial,sans-serif;
+            padding:40px;
+        }
 
-    if (window.ssiLiveInterval) {
-        clearInterval(window.ssiLiveInterval);
-    }
+        h1{
+            color:#00d2ff;
+        }
 
-    const style = document.createElement("style");
+        button{
+            background:#00d2ff;
+            color:black;
+            border:none;
+            padding:15px 25px;
+            border-radius:10px;
+            font-size:18px;
+            cursor:pointer;
+        }
 
-    style.innerHTML = `
-    #ssi-live-overlay{
-        position:fixed;
-        top:20px;
-        right:20px;
-        width:700px;
-        max-height:90vh;
-        overflow:auto;
-        background:#111;
-        color:white;
-        z-index:999999;
-        border-radius:12px;
-        box-shadow:0 0 30px rgba(0,0,0,0.5);
-        font-family:Arial;
-        border:2px solid #333;
-    }
+        button:hover{
+            opacity:0.9;
+        }
+    </style>
+</head>
+<body>
 
-    #ssi-live-header{
-        padding:15px;
-        background:#1d1d1d;
-        font-size:22px;
-        font-weight:bold;
-        border-bottom:1px solid #333;
-    }
+<h1>SSI Live Overlay</h1>
 
-    #ssi-live-sub{
-        font-size:12px;
-        color:#aaa;
-        margin-top:5px;
-    }
+<p>
+1. Åpne SSI Live Scores i en annen tab.
+</p>
 
-    table{
-        width:100%;
-        border-collapse:collapse;
-    }
+<p>
+2. Gå tilbake hit.
+</p>
 
-    th{
-        background:#222;
-        padding:10px;
-        position:sticky;
-        top:0;
-    }
+<p>
+3. Trykk knappen under.
+</p>
 
-    td{
-        padding:8px;
-        border-bottom:1px solid #333;
-    }
+<button id="loadOverlay">
+    Load Live Overlay
+</button>
 
-    tr:hover{
-        background:#1b1b1b;
-    }
+<script>
 
-    .hf{
-        color:#7CFC00;
-        font-weight:bold;
-    }
+    document.getElementById("loadOverlay").onclick = async () => {
 
-    .rank{
-        color:#00d2ff;
-        font-weight:bold;
-    }
+        const code = await fetch("./overlay.js")
+            .then(r => r.text());
 
-    #ssi-close{
-        position:absolute;
-        top:10px;
-        right:10px;
-        cursor:pointer;
-        background:red;
-        color:white;
-        border:none;
-        padding:5px 10px;
-        border-radius:5px;
-    }
-    `;
-
-    document.head.appendChild(style);
-
-    const overlay = document.createElement("div");
-
-    overlay.id = "ssi-live-overlay";
-
-    overlay.innerHTML = `
-        <button id="ssi-close">X</button>
-
-        <div id="ssi-live-header">
-            SSI LIVE RESULTS
-            <div id="ssi-live-sub"></div>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>HF</th>
-                    <th>Time</th>
-                    <th>Name</th>
-                    <th>Score</th>
-                </tr>
-            </thead>
-
-            <tbody id="ssi-live-body"></tbody>
-        </table>
-    `;
-
-    document.body.appendChild(overlay);
-
-    window.ssiLiveOverlay = overlay;
-
-    function hentData(){
-
-        let rows = Array.from(document.querySelectorAll("table tr"))
-        .map(r => r.innerText.trim())
-        .filter(t =>
-            t &&
-            t.includes("\t") &&
-            !t.includes("Tid\tHit Factor") &&
-            !t.includes("TidHitFactor") &&
-            !t.includes("No data")
-        )
-        .map(t => {
-
-            let p = t.split("\t");
-
-            return {
-                tid: parseFloat(p[0]),
-                hf: parseFloat(p[1]),
-                navn: p[2],
-                score: p[3]
-            };
-        })
-        .filter(x => !isNaN(x.hf))
-        .sort((a,b)=>b.hf-a.hf);
-
-        let tbody = document.getElementById("ssi-live-body");
-
-        tbody.innerHTML = "";
-
-        rows.forEach((r,i)=>{
-
-            tbody.innerHTML += `
-                <tr>
-                    <td class="rank">${i+1}</td>
-                    <td class="hf">${r.hf.toFixed(4)}</td>
-                    <td>${r.tid}</td>
-                    <td>${r.navn}</td>
-                    <td>${r.score}</td>
-                </tr>
-            `;
-
-        });
-
-        document.getElementById("ssi-live-sub").innerText =
-            "Updated: " + new Date().toLocaleTimeString();
-
-    }
-
-    hentData();
-
-    window.ssiLiveInterval = setInterval(hentData,2000);
-
-    document.getElementById("ssi-close").onclick = ()=>{
-
-        clearInterval(window.ssiLiveInterval);
-
-        overlay.remove();
+        eval(code);
 
     };
 
-})();
-```
+</script>
+
+</body>
+</html>
